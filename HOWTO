@@ -1,0 +1,10 @@
+1 download the publish source code
+
+2 cd New_project.template
+3 vim create_new_project_from_template_env.sh  
+修改项目名称及svn源等
+
+发布系统跟目录:/backup/autoshell/chroot/
+
+
+
