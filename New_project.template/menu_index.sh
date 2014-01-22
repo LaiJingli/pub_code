@@ -73,14 +73,14 @@ function sub_release()
 	#以下为需要测试、开发配合完成发布的项目
 	p[1]=Hogwarts_online_test
 	p[2]=Notify_ops_to_excute_release_doc
-	p[3]=192.168.0.8_DB_release
-	p[4]=192.168.0.2_DB_release
-	p[5]=Sphinx
-	p[6]=Hogwarts
-	p[7]=BabySitter
-	p[8]=BodyGuard
-	p[9]=Workflow
-	p[10]=CPCReport
+	p[3]=192.168.10.18_DB_release
+	p[4]=192.168.10.12_DB_release
+	p[5]=Sphin
+	p[6]=Hogwa
+	p[7]=BabySi
+	p[8]=Bod
+	p[9]=Workf
+	p[10]=Report
 
 	project_total_num=10
 
