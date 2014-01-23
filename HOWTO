@@ -1,10 +1,92 @@
-1 download the publish source code
-
-2 cd New_project.template
-3 vim create_new_project_from_template_env.sh  
-修改项目名称及svn源等
-
 发布系统跟目录:/backup/autoshell/chroot/
+
+发布系统所需命令工具：ssh、sshpass、rsync、script、tee、iconv、svn、mysql、mutt
+
+核心功能：
+通过mysql远程执行命令来发布数据库增删改查操作
+/usr/local/mysql/bin/mysql -udb_release -prelease684 -h$mysql_ip $mysql_db
+
+将非UTF8编码的文件进行编码转换
+iconv -f gbk -tutf8 $doc_path$input_doc_name -o $doc_path$input_doc_name.utf8
+
+使用tee将输出信息同时打印到终端和log文件
+echo "$log_time rsync conf file to $host finished" |tee -a $rsync_conf_log
+
+导出测试通过版本的代码
+/usr/bin/svn  -r $current_revision_code --force export  $svn_server$svn_code_path   $code_path$today/$project_name 
+
+通过sshpass免密码rsync发布代码到目标服务器的发布目录
+sshpass -p 123456 rsync -vzrtopg  -e "ssh -o StrictHostKeyChecking=no" --exclude-from=$exclude_conf_file release_code_${project_name}/$(date +%Y%m%d)/$project_name/  $user$host:$desdir
+
+和jira联动，查询本次发布解决了那些问题
+jira_info=`mysql -uproxy -p'test' -P22 -h2.5.4.6 jira -e "select pkey,REPORTER,ASSIGNEE,SUMMARY,DESCRIPTION  from jiraissue where pkey='$jira_issue_id'  limit 1;"`
+echo $jira_info|awk '{print "问题号:http://192.168.1.121:8085/browse/"$6;print "报告人:"$7;print "经办人:"$8;print "问题摘要:"$9;print "问题描述:"$10}'`
+
+获取本次发布与上次发布之间做了那些修改
+svn diff -r $last_revision_code:$current_revision_code  $svn_server$svn_code_path
+
+将发布报告邮件给指定人员
+cat $mail_report_log |/usr/local/mutt/bin/mutt -a $sql_path$input_sql_name -a $tmp_code_diff_log -s $mail_tittle $receipt_user
+
+
+HOWTO部署步骤：
+1、发布以www用户进行，确保www用户只能ssh 执行menu_index.sh入口脚本，且对用户的操作屏幕进行录屏审计（支持回放）
+# more /home/www/.bash_profile 
+root_dir=/backup/autoshell/chroot
+exec /usr/bin/script -q -t -c "$root_dir/menu_index.sh" 2>$root_dir/log/$(date +%Y%m%d)_screen_all.date  -a  -f  $root_dir/log/$(date +%Y%m%d)_screen_all.log
+
+
+2、从https://github.com/LaiJingli/pub_code下载源码到/backup/autoshell/chroot目录
+
+cd New_project.template
+
+修改项目名称及svn源等
+#vim create_new_project_from_template_env.sh  
+
+然后执行该脚本即可生成对应的项目
+#./create_new_project_from_template_env.sh 
+
+
+3、配置发送邮件系统，因采用简单的mail命令不能很好的发送附件，且伪造发件人的话邮件容易被过滤，故采用mutt+mssmtp通过认证的方式发送邮件
+wget http://nchc.dl.sourceforge.net/sourceforge/msmtp/msmtp-1.4.17.tar.bz2 
+tar xvf msmtp-1.4.17.tar.bz2 
+cd msmtp-1.4.17 
+./configure --prefix=/usr/local/msmtp 
+make 
+make install 
+cd /usr/local/msmtp/ 
+mkdir etc 
+cd etc 
+
+手动创建配置文件
+# cat /usr/local/msmtp/etc/msmtprc
+defaults 
+tls off 
+logfile /usr/local/msmtp/msmtp.log 
+account script
+host mail.sohu.net
+port 25 
+protocol smtp 
+timeout 60 
+from script@sohu.com
+auth login 
+user script@sohu.com 
+password wh628FW
+ 
+
+配置www用户采用msmtp发送邮件
+# more /home/www/.muttrc 
+set sendmail="/usr/local/msmtp/bin/msmtp" 
+set use_from=yes 
+set realname="发布系统" 
+#set from=362560701@qq.com 
+set from=script@sohu.com
+set envelope_from=yes 
+
+
+
+4、完成，如有问题请重点检查路径。
+
 
 
 
